@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPhone 17 Pro Max - Ahorro Compartido</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        apple: {
+                            bg: '#000000',
+                            card: '#1c1c1e',
+                            cardHover: '#2c2c2e',
+                            accent: '#2997ff',
+                            gold: '#f5c518',
+                            gray: '#86868b',
+                            lightGray: '#f5f5f7',
+                            danger: '#ff453a',
+                            success: '#30d158'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome para Íconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- Firebase SDK Compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #000000;
+            color: #f5f5f7;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .glass-card {
+            background: rgba(28, 28, 30, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gold-gradient-text {
+            background: linear-gradient(135deg, #ffe57f 0%, #f5c518 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-apple-accent selection:text-white">
+
+    <!-- PANTALLA DE ACCESO (PIN & USUARIO) -->
+    <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+        <!-- Fondo Decorativo -->
+        <div class="absolute -top-40 -left-40 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="glass-card w-full max-w-md p-8 rounded-3xl shadow-2xl relative z-10 border border-white/10">
+            <div class="text-center mb-6">
+                <!-- Imagen del iPhone en el Login -->
+                <div class="relative w-28 h-36 mx-auto mb-2 flex items-center justify-center">
+                    <img src="https://co.tiendasishop.com/cdn/shop/files/IMG-18067866_m_jpeg_1_c32f3236-58f9-4619-8126-1ddf3ac60098.jpg?v=1757687633" 
+                         alt="iPhone Pro Max" class="h-full object-contain drop-shadow-[0_10px_20px_rgba(245,197,24,0.2)]">
+                </div>
+                <h1 class="text-2xl font-bold text-white tracking-tight">iPhone 17 Pro Max</h1>
+                <p class="text-sm text-apple-gray mt-1">Meta de Ahorro Compartido</p>
+            </div>
+
+            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-6">
+                <div>
+                    <label class="block text-xs font-semibold text-apple-gray uppercase tracking-wider mb-2">Seleccionar Perfil</label>
+                    <div class="relative">
+                        <select id="user-select" class="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-apple-accent transition-colors appearance-none cursor-pointer">
+                            <option value="alex">Alex (Editor)</option>
+                            <option value="mariana">Mariana (Lectora)</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-apple-gray pointer-events-none text-xs"></i>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-apple-gray uppercase tracking-wider mb-2">PIN de Acceso (5 dígitos)</label>
+                    <input type="password" id="pin-input" maxlength="5" placeholder="•••••" inputmode="numeric" pattern="[0-9]*" required
+                        class="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-white text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-apple-accent transition-colors">
+                    <p class="text-[11px] text-apple-gray mt-2 text-center">PIN inicial por defecto: <span class="font-mono text-white">00000</span></p>
+                </div>
+
+                <div id="auth-error" class="hidden text-apple-danger text-xs text-center bg-apple-danger/10 border border-apple-danger/20 p-2.5 rounded-xl"></div>
+
+                <button type="submit" class="w-full bg-white text-black font-semibold py-3.5 rounded-xl hover:bg-apple-lightGray transition-all transform active:scale-95 shadow-lg">
+                    Ingresar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- PANTALLA PRINCIPAL (DASHBOARD) -->
+    <div id="dashboard-screen" class="hidden min-h-screen flex-col">
+        <!-- Header -->
+        <header class="glass-card sticky top-0 z-30 border-b border-white/10 px-4 py-3">
+            <div class="max-w-5xl mx-auto flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-brands fa-apple text-xl text-white"></i>
+                    <div>
+                        <h2 class="text-sm font-semibold text-white leading-tight">iPhone 17 Pro Max</h2>
+                        <span id="user-badge" class="inline-block text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-apple-gray font-medium"></span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="openChangePinModal()" class="text-xs text-apple-gray hover:text-white px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 transition-colors">
+                        <i class="fa-solid fa-key mr-1"></i> Cambiar PIN
+                    </button>
+                    <button onclick="logout()" class="text-xs text-apple-danger hover:text-red-400 px-3 py-1.5 rounded-lg bg-apple-danger/10 border border-apple-danger/20 transition-colors">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-5xl mx-auto w-full px-4 py-8 space-y-8 flex-1">
+            
+            <!-- Hero Card / Progress Overview (Con Imagen del iPhone integrada) -->
+            <div class="glass-card p-6 md:p-8 rounded-3xl relative overflow-hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                    
+                    <!-- Columna 1: Imagen del iPhone (Móvil y Desktop) -->
+                    <div class="lg:col-span-4 flex justify-center items-center">
+                        <div class="relative group">
+                            <div class="absolute -inset-1 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 rounded-3xl blur-xl group-hover:opacity-100 transition duration-1000"></div>
+                            <div class="relative bg-black/40 border border-white/10 p-4 rounded-3xl flex justify-center">
+                                <img src="https://co.tiendasishop.com/cdn/shop/files/IMG-18067866_m_jpeg_1_c32f3236-58f9-4619-8126-1ddf3ac60098.jpg?v=1757687633" 
+                                     alt="iPhone 17 Pro Max Natural Titanium" 
+                                     class="h-56 md:h-64 object-contain drop-shadow-[0_15px_25px_rgba(0,0,0,0.8)] hover:scale-105 transition-transform duration-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columna 2: Progreso e Información -->
+                    <div class="lg:col-span-5 space-y-4">
+                        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium">
+                            <i class="fa-solid fa-bullseye"></i>
+                            <span>Meta Total: $4,000,000 COP</span>
+                        </div>
+                        <div>
+                            <p class="text-xs uppercase tracking-wider text-apple-gray font-semibold">Total Ahorrado</p>
+                            <h1 id="total-saved" class="text-4xl md:text-5xl font-extrabold gold-gradient-text tracking-tight mt-1">$0</h1>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-xs text-apple-gray font-medium">
+                                <span>Progreso</span>
+                                <span id="progress-percent">0%</span>
+                            </div>
+                            <div class="w-full bg-white/10 rounded-full h-3 overflow-hidden p-0.5 border border-white/5">
+                                <div id="progress-bar" class="bg-gradient-to-r from-amber-500 to-yellow-300 h-full rounded-full transition-all duration-700 w-0"></div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 pt-2">
+                            <div class="bg-black/30 p-3 rounded-2xl border border-white/5">
+                                <p class="text-[11px] text-apple-gray">Faltante</p>
+                                <p id="remaining-amount" class="text-base font-semibold text-white">$4,000,000</p>
+                            </div>
+                            <div class="bg-black/30 p-3 rounded-2xl border border-white/5">
+                                <p class="text-[11px] text-apple-gray">Aportes Realizados</p>
+                                <p id="total-contributions-count" class="text-base font-semibold text-white">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columna 3: Indicador Circular -->
+                    <div class="lg:col-span-3 flex flex-col items-center justify-center border-t lg:border-t-0 lg:border-l border-white/10 pt-6 lg:pt-0 lg:pl-6">
+                        <div class="relative w-36 h-36 flex items-center justify-center">
+                            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                <path class="text-white/10" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                <path id="circle-progress" class="text-yellow-400 transition-all duration-700 stroke-current" stroke-dasharray="0, 100" stroke-width="3.5" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            </svg>
+                            <div class="absolute flex flex-col items-center">
+                                <span id="circle-percent" class="text-2xl font-bold text-white">0%</span>
+                                <span class="text-[10px] text-apple-gray uppercase">Logrado</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Form & History Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- Formulario Agregar Ahorro (Solo Alex / Admin) -->
+                <div id="add-savings-card" class="glass-card p-6 rounded-3xl border border-white/10 space-y-4 h-fit">
+                    <h3 class="text-lg font-semibold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-plus-circle text-apple-accent"></i>
+                        <span>Nuevo Aporte</span>
+                    </h3>
+                    <p class="text-xs text-apple-gray">Registra un nuevo monto ahorrado para actualizar la meta.</p>
+
+                    <form id="savings-form" onsubmit="handleAddSavings(event)" class="space-y-4 pt-2">
+                        <div>
+                            <label class="block text-xs text-apple-gray mb-1">Monto ($ COP)</label>
+                            <input type="number" id="savings-amount" min="1000" placeholder="Ej: 50000" required
+                                class="w-full bg-black/50 border border-white/15 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-apple-accent text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-apple-gray mb-1">Nota / Concepto (Opcional)</label>
+                            <input type="text" id="savings-note" placeholder="Ej: Ahorro de la semana"
+                                class="w-full bg-black/50 border border-white/15 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-apple-accent text-sm">
+                        </div>
+                        <button type="submit" class="w-full bg-apple-accent hover:bg-blue-600 text-white font-medium py-2.5 rounded-xl transition-all text-sm shadow-md">
+                            Añadir al Ahorro
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Banner Informativo para Mariana (Read Only) -->
+                <div id="read-only-card" class="hidden glass-card p-6 rounded-3xl border border-white/10 space-y-3 h-fit">
+                    <div class="flex items-center space-x-2 text-amber-400">
+                        <i class="fa-solid fa-eye text-lg"></i>
+                        <h3 class="text-base font-semibold">Modo Lectura</h3>
+                    </div>
+                    <p class="text-xs text-apple-gray leading-relaxed">
+                        Hola Mariana 👋. Estás en modo de visualización. Puedes ver en tiempo real los avances del ahorro y los registros realizados por Alex.
+                    </p>
+                </div>
+
+                <!-- Historial de Aportes -->
+                <div class="lg:col-span-2 glass-card p-6 rounded-3xl border border-white/10 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-white flex items-center space-x-2">
+                            <i class="fa-solid fa-list-check text-amber-400"></i>
+                            <span>Historial de Aportes</span>
+                        </h3>
+                        <span id="history-count" class="text-xs bg-white/10 px-2.5 py-1 rounded-full text-apple-gray">0 registros</span>
+                    </div>
+
+                    <div id="history-list" class="space-y-3 max-h-96 overflow-y-auto pr-1">
+                        <!-- Carga dinámica -->
+                        <div class="text-center py-8 text-apple-gray text-xs">Cargando registros...</div>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="py-6 text-center text-xs text-apple-gray border-t border-white/5">
+            <p>iPhone 17 Pro Max Goal • Ahorro Compartido</p>
+        </footer>
+    </div>
+
+    <!-- MODAL CAMBIAR PIN -->
+    <div id="change-pin-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-sm p-6 rounded-3xl border border-white/10 space-y-4 relative">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white">Cambiar PIN de Acceso</h3>
+                <button onclick="closeChangePinModal()" class="text-apple-gray hover:text-white text-sm">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <p id="pin-modal-subtitle" class="text-xs text-apple-gray">Ingresa tu nuevo PIN numérico de 5 dígitos.</p>
+
+            <form id="change-pin-form" onsubmit="handleChangePin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs text-apple-gray mb-1">Nuevo PIN (5 dígitos)</label>
+                    <input type="password" id="new-pin-input" maxlength="5" required inputmode="numeric" pattern="[0-9]*" placeholder="•••••"
+                        class="w-full bg-black/50 border border-white/15 rounded-xl px-4 py-2.5 text-center text-xl tracking-widest text-white focus:outline-none focus:border-apple-accent">
+                </div>
+                <div>
+                    <label class="block text-xs text-apple-gray mb-1">Confirmar Nuevo PIN</label>
+                    <input type="password" id="confirm-pin-input" maxlength="5" required inputmode="numeric" pattern="[0-9]*" placeholder="•••••"
+                        class="w-full bg-black/50 border border-white/15 rounded-xl px-4 py-2.5 text-center text-xl tracking-widest text-white focus:outline-none focus:border-apple-accent">
+                </div>
+
+                <div id="pin-error" class="hidden text-apple-danger text-xs text-center"></div>
+
+                <button type="submit" class="w-full bg-apple-accent hover:bg-blue-600 text-white font-medium py-2.5 rounded-xl transition-all text-sm">
+                    Guardar Nuevo PIN
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- CONFIGURACIÓN DE FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBYbdLe92IsQdgzLBwgOPhLc1q_UvuESxk",
+            authDomain: "nomina-mariachi.firebaseapp.com",
+            databaseURL: "https://nomina-mariachi-default-rtdb.firebaseio.com",
+            projectId: "nomina-mariachi",
+            storageBucket: "nomina-mariachi.firebasestorage.app",
+            messagingSenderId: "22825374302",
+            appId: "1:22825374302:web:33f92659e24ebba05b1acf"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // --- CONSTANTES & ESTADO ---
+        const TARGET_AMOUNT = 4000000;
+        const DEFAULT_PIN = "00000";
+        let currentUser = null; // 'alex' o 'mariana'
+        let savingsData = [];
+
+        // Referencia Base en Realtime Database
+        const dbRef = db.ref('iphone17_shared_app');
+
+        // Formateador de Moneda
+        const formatCOP = (amount) => {
+            return new Intl.NumberFormat('es-CO', {
+                style: 'currency',
+                currency: 'COP',
+                maximumFractionDigits: 0
+            }).format(amount);
+        };
+
+        // --- MANEJO DE AUTENTICACIÓN ---
+        async function handleLogin(e) {
+            e.preventDefault();
+            const selectedUser = document.getElementById('user-select').value;
+            const inputPin = document.getElementById('pin-input').value.trim();
+            const errorDiv = document.getElementById('auth-error');
+
+            errorDiv.classList.add('hidden');
+
+            if (inputPin.length < 4) {
+                showAuthError("Ingresa tu PIN completo.");
+                return;
+            }
+
+            try {
+                // Obtener PIN actual de Firebase
+                const pinSnapshot = await dbRef.child(`pins/${selectedUser}`).once('value');
+                let validPin = pinSnapshot.val();
+
+                // Si no existe PIN configurado en Firebase, inicializar con DEFAULT_PIN
+                if (!validPin) {
+                    validPin = DEFAULT_PIN;
+                    await dbRef.child(`pins/${selectedUser}`).set(DEFAULT_PIN);
+                }
+
+                if (inputPin === validPin || (inputPin === "0000" && validPin === DEFAULT_PIN)) {
+                    currentUser = selectedUser;
+                    document.getElementById('pin-input').value = '';
+
+                    // Si está usando el PIN por defecto, obligar a cambiarlo
+                    if (validPin === DEFAULT_PIN) {
+                        openChangePinModal(true);
+                    } else {
+                        startAppSession();
+                    }
+                } else {
+                    showAuthError("PIN incorrecto. Intenta de nuevo.");
+                }
+            } catch (err) {
+                console.error("Error al autenticar:", err);
+                showAuthError("Error de conexión con Firebase.");
+            }
+        }
+
+        function showAuthError(msg) {
+            const errorDiv = document.getElementById('auth-error');
+            errorDiv.textContent = msg;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function startAppSession() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('dashboard-screen').classList.remove('hidden');
+            document.getElementById('dashboard-screen').classList.add('flex');
+
+            // Configurar badges y permisos por usuario
+            const badge = document.getElementById('user-badge');
+            const addCard = document.getElementById('add-savings-card');
+            const readOnlyCard = document.getElementById('read-only-card');
+
+            if (currentUser === 'alex') {
+                badge.textContent = 'Alex (Editor)';
+                badge.className = 'inline-block text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-medium border border-blue-500/30';
+                addCard.classList.remove('hidden');
+                readOnlyCard.classList.add('hidden');
+            } else {
+                badge.textContent = 'Mariana (Lectora)';
+                badge.className = 'inline-block text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-medium border border-amber-500/30';
+                addCard.classList.add('hidden');
+                readOnlyCard.classList.remove('hidden');
+            }
+
+            listenToSavingsUpdates();
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('dashboard-screen').classList.add('hidden');
+            document.getElementById('dashboard-screen').classList.remove('flex');
+            document.getElementById('auth-screen').classList.remove('hidden');
+        }
+
+        // --- REGLAS DE NEGOCIO Y BASE DE DATOS ---
+        function listenToSavingsUpdates() {
+            dbRef.child('contributions').on('value', (snapshot) => {
+                const data = snapshot.val();
+                savingsData = [];
+
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        savingsData.push({
+                            id: key,
+                            ...data[key]
+                        });
+                    });
+                }
+
+                // Ordenar por fecha descendente
+                savingsData.sort((a, b) => b.timestamp - a.timestamp);
+                renderDashboard();
+            });
+        }
+
+        async function handleAddSavings(e) {
+            e.preventDefault();
+            if (currentUser !== 'alex') return;
+
+            const amountInput = document.getElementById('savings-amount');
+            const noteInput = document.getElementById('savings-note');
+
+            const amount = parseFloat(amountInput.value);
+            const note = noteInput.value.trim() || 'Aporte de ahorro';
+
+            if (isNaN(amount) || amount <= 0) return;
+
+            const newContribution = {
+                amount: amount,
+                note: note,
+                user: currentUser,
+                date: new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }),
+                timestamp: Date.now()
+            };
+
+            await dbRef.child('contributions').push(newContribution);
+
+            amountInput.value = '';
+            noteInput.value = '';
+        }
+
+        async function deleteContribution(id) {
+            if (currentUser !== 'alex') return;
+            if (confirm('¿Deseas eliminar este registro de ahorro?')) {
+                await dbRef.child(`contributions/${id}`).remove();
+            }
+        }
+
+        // --- RENDERIZADO DE INTERFAZ ---
+        function renderDashboard() {
+            const totalSaved = savingsData.reduce((acc, item) => acc + item.amount, 0);
+            const remaining = Math.max(0, TARGET_AMOUNT - totalSaved);
+            const percent = Math.min(100, ((totalSaved / TARGET_AMOUNT) * 100)).toFixed(1);
+
+            // Actualizar textos
+            document.getElementById('total-saved').textContent = formatCOP(totalSaved);
+            document.getElementById('remaining-amount').textContent = formatCOP(remaining);
+            document.getElementById('progress-percent').textContent = `${percent}%`;
+            document.getElementById('circle-percent').textContent = `${Math.round(percent)}%`;
+            document.getElementById('total-contributions-count').textContent = savingsData.length;
+            document.getElementById('history-count').textContent = `${savingsData.length} registros`;
+
+            // Barra de progreso
+            document.getElementById('progress-bar').style.width = `${percent}%`;
+
+            // Indicador Circular
+            const circle = document.getElementById('circle-progress');
+            circle.setAttribute('stroke-dasharray', `${percent}, 100`);
+
+            // Celebración Confeti si se alcanza el 100%
+            if (totalSaved >= TARGET_AMOUNT && savingsData.length > 0) {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            }
+
+            // Renderizar Lista de Historial
+            const historyList = document.getElementById('history-list');
+            if (savingsData.length === 0) {
+                historyList.innerHTML = `
+                    <div class="text-center py-8 text-apple-gray text-xs">
+                        No hay aportes registrados aún.
+                    </div>`;
+                return;
+            }
+
+            historyList.innerHTML = savingsData.map(item => `
+                <div class="bg-black/30 p-3.5 rounded-2xl border border-white/5 flex items-center justify-between hover:border-white/10 transition-colors">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-sm">
+                            <i class="fa-solid fa-piggy-bank"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-white">${formatCOP(item.amount)}</p>
+                            <p class="text-[11px] text-apple-gray">${item.note} • <span class="text-white/60">${item.date}</span></p>
+                        </div>
+                    </div>
+                    ${currentUser === 'alex' ? `
+                        <button onclick="deleteContribution('${item.id}')" class="text-apple-gray hover:text-apple-danger p-2 transition-colors text-xs">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        // --- GESTIÓN DE CAMBIO DE PIN ---
+        let isForcedPinChange = false;
+
+        function openChangePinModal(forced = false) {
+            isForcedPinChange = forced;
+            const subtitle = document.getElementById('pin-modal-subtitle');
+            
+            if (forced) {
+                subtitle.textContent = "Por seguridad, debes cambiar tu PIN por defecto (00000) antes de continuar.";
+            } else {
+                subtitle.textContent = "Ingresa tu nuevo PIN numérico de 5 dígitos.";
+            }
+
+            document.getElementById('change-pin-modal').classList.remove('hidden');
+        }
+
+        function closeChangePinModal() {
+            if (isForcedPinChange) return; // No permitir cerrar si es cambio obligatorio
+            document.getElementById('change-pin-modal').classList.add('hidden');
+            document.getElementById('pin-error').classList.add('hidden');
+        }
+
+        async function handleChangePin(e) {
+            e.preventDefault();
+            const newPin = document.getElementById('new-pin-input').value.trim();
+            const confirmPin = document.getElementById('confirm-pin-input').value.trim();
+            const errorDiv = document.getElementById('pin-error');
+
+            errorDiv.classList.add('hidden');
+
+            if (newPin.length < 4 || newPin.length > 5) {
+                errorDiv.textContent = "El PIN debe tener 5 dígitos.";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (newPin !== confirmPin) {
+                errorDiv.textContent = "Los PINs ingresados no coinciden.";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (newPin === DEFAULT_PIN) {
+                errorDiv.textContent = "Elige un PIN diferente al de defecto (00000).";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                // Actualizar en Firebase
+                const targetUser = currentUser || document.getElementById('user-select').value;
+                await dbRef.child(`pins/${targetUser}`).set(newPin);
+
+                alert("¡PIN actualizado con éxito!");
+                
+                document.getElementById('new-pin-input').value = '';
+                document.getElementById('confirm-pin-input').value = '';
+                document.getElementById('change-pin-modal').classList.add('hidden');
+
+                if (isForcedPinChange) {
+                    isForcedPinChange = false;
+                    startAppSession();
+                }
+            } catch (err) {
+                console.error("Error al cambiar PIN:", err);
+                errorDiv.textContent = "Error al actualizar en la base de datos.";
+                errorDiv.classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
